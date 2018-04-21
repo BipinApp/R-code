@@ -57,8 +57,6 @@ boxplot(data,main = "Boxplot of Sampled Data")
 ### The circular points in the box plot is the evidence of the outlier.
 
 
-
-
 # scatterplot 
 library(car)
 pairs(~PE+AT+V+AP+RH,
@@ -207,3 +205,4 @@ hist(model$residuals)
 ####################################################################################
 # Taking log transformation of all data  didn't provide normal residual distribution
 ####################################################################################
+
