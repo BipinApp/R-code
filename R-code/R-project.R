@@ -21,24 +21,27 @@ colnames(x)
 #performing boxplot before resampling the data
 ########
 
-par(mfrow=c(1,5))
-boxplot(x$AT)
-boxplot(x$V)
-boxplot(x$AP)
-boxplot(x$RH)
-boxplot(x$PE)
-par(mfrow=c(1,1))
-boxplot(x,main = "Boxplot of all the variable")
-###figure shows presence of the outlier in two variabels
-### PRESSURE and Relative Humidity shows there is presence of the outlier
-### The circular points in the box plot is the evidence of the outlier.
+
 
 #########
 # Total of 9568 data is in the dataset.
 # To make easy for calculation 
 #2000 samples were selected randomly from the dataset
+
 library(dplyr)
-data = sample_n(x,2000)
+data = sample_n(x,800)
+
+
+#### saving data in CSV to work on int
+setwd("C:\\data\\")
+write.csv(data, file="project_trunc1.csv")
+
+data<-read.csv("C:\\data\\project_trunc1.csv",header=TRUE)
+### removing the number column from the data
+data <- data[c("AT",'V','AP','RH','PE')]
+str(data)
+summary(data)
+colnames(data)
 
 ### again taking the boxplot of the newly sampled data for the outliers
 par(mfrow=c(1,5))
@@ -53,24 +56,7 @@ boxplot(data,main = "Boxplot of Sampled Data")
 ### PRESSURE and Relative Humidity shows there is presence of the outlier
 ### The circular points in the box plot is the evidence of the outlier.
 
-#checking Histogram of all the variable and comparing against its log transformation
-data$logPE <- log(data$PE)
-data$logAT <- log(data$AT)
-data$logV <- log(data$V)
-data$logAP <- log(data$AP)
-data$logRH <- log(data$RH)
-par(mfrow=c(2,5))
-hist(data$PE)
-hist(data$AT)
-hist(data$AP)
-hist(data$RH)
-hist(data$V)
-hist(data$logPE)
-hist(data$logAT)
-hist(data$logAP)
-hist(data$logRH)
-hist(data$logV)
-par(mfrow =c(1,1))
+
 
 
 # scatterplot 
@@ -80,8 +66,13 @@ pairs(~PE+AT+V+AP+RH,
       data=data, 
       # diagonal = "histogram"
       labels=c("Power Output","X1:Temperature (AT)","X2:Exhasut Vaccum(V)",
-             "X3:Ambient Pressure(AP)","X4:Relative Humidity(RH)","X4:"))
-scatterplotMatrix(data,spread=FALSE, smoother.args = list(lty=2),diagonal = 'histogram')
+               "X3:Ambient Pressure(AP)","X4:Relative Humidity(RH)","X4:"))
+#scatterplotMatrix(data,spread=FALSE, smoother.args = list(lty=2),diagonal = 'histogram')
+
+### correlation between parameters
+library(psych)
+cor(data[c("PE", "RH", "AP","V", "AT")])
+pairs.panels(data[c("PE", "RH", "AP","V", "AT")], main="Correlation among Variables")
 ###########################
 ####ANALYSIS:
 ## 1. Linear Negative relation between Temperature and Power Output
@@ -95,12 +86,47 @@ scatterplotMatrix(data,spread=FALSE, smoother.args = list(lty=2),diagonal = 'his
 ## 9. It seems no relationship exists between ambient pressure and Relative Humidity 
 ############################
 
+#####checking Histogram of all the variable and comparing against its log transformation
+par(mfrow=c(2,5))
+hist(data$PE)
+hist(data$AT)
+hist(data$AP)
+hist(data$RH)
+hist(data$V)
+hist(log(data$PE))
+hist(log(data$AT))
+hist(log(data$AP))
+hist(log(data$RH))
+hist(log(data$V))
+par(mfrow =c(1,1))
+
+### creating  model with all possibilities
+
+data$AT_sq <- (data$AT)^2
+data$V_sq <- (data$V)^2
+data$AP_sq <- (data$AP)^2
+data$RH_sq <- (data$RH)^2
+
 
 ##### Purpose modal 
-model <- lm(PE~AT+V+AP+RH, data=data)
+### +AT*V + AT*AP + AT*RH + V*AP+ V*RH + AP*RH 
+
+model <- lm(PE~AT+AT_sq+V+V_sq+AP+AP_sq+RH+RH_sq  , data=data)
 summary(model)
 ## Shows that every parameters are significant.
 
+##
+library(olsrr)
+best <- ols_best_subset(model)
+best
+step <- ols_stepwise(model)
+step
+
+### new model
+model <- lm(PE~AT+V+AP+RH  , data=data)
+summary(model)
+### multicollinearity Check
+vif(model)
 
 anova(model)
 ## Sequential Anova Test.
@@ -117,6 +143,7 @@ qqline(model$residuals)
 hist(model$residuals)
 ## It seems the histogram is normal
 
+
 ##### Performing the shapiro test of normality
 shapiro.test(model$residuals)
 ## It shows that the residual distribution isnot normal
@@ -125,6 +152,10 @@ shapiro.test(model$residuals)
 par(mfrow = c(2,2))
 plot(model)
 par(mfrow =c(1,1))
+
+#### removing the outliers in the data
+
+
 
 ## boxplot of the all the data 
 ## check the normality of the data
